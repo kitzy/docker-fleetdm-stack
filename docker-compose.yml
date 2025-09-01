@@ -1,6 +1,6 @@
 services:
   mysql-fleet:
-    image: mysql:8.0.37
+    image: mysql
     container_name: mysql-fleet
     platform: linux/x86_64
     environment:
@@ -23,7 +23,7 @@ services:
     restart: unless-stopped
 
   redis-fleet:
-    image: redis:7.2
+    image: redis
     container_name: redis-fleet
     environment:
       - TZ=${TZ}
@@ -40,7 +40,7 @@ services:
     restart: unless-stopped
 
   fleet:
-    image: fleetdm/fleet:v4.59.0
+    image: fleetdm/fleet
     container_name: fleet
     platform: linux/x86_64
 #    depends_on:
