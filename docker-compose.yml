@@ -1,6 +1,6 @@
 services:
   mysql-fleet:
-    image: mysql
+    image: mysql:8.4
     container_name: mysql-fleet
     platform: linux/x86_64
     environment:
