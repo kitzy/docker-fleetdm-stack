@@ -49,6 +49,9 @@ services:
     user: ${PUID}:${PGID}   # Running Fleet as your PUID/PGID is usually fine.
     environment:
       - TZ=${TZ}
+      - FLEET_MYSQL_DATABASE=${MYSQL_DATABASE}
+      - FLEET_MYSQL_USERNAME=${MYSQL_USERNAME}
+      - FLEET_MYSQL_PASSWORD=${MYSQL_PASSWORD}
     env_file: fleet/default.env   # ensure MYSQL_ADDRESS=mysql:3306, REDIS_ADDRESS=redis:6379, etc.
     ports:
       - "8080:8080"  # Fleet UI/API
