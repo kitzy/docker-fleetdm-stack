@@ -43,11 +43,11 @@ services:
     image: fleetdm/fleet
     container_name: fleet
     platform: linux/x86_64
-#    depends_on:
-#      mysql-fleet:
-#        condition: service_healthy
-#      redis-fleet:
-#        condition: service_healthy
+    depends_on:
+      mysql-fleet:
+        condition: service_healthy
+      redis-fleet:
+        condition: service_healthy
     # Prepare DB once; serving afterwards. This is acceptable, but you can
     # also pre-initialize out-of-band if you prefer.
     command: sh -c "/usr/bin/fleet prepare db --no-prompt && /usr/bin/fleet serve"
