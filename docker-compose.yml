@@ -48,10 +48,8 @@ services:
         condition: service_healthy
       redis-fleet:
         condition: service_healthy
-    # Prepare DB once; serving afterwards. This is acceptable, but you can
-    # also pre-initialize out-of-band if you prefer.
     command: sh -c "/usr/bin/fleet prepare db --no-prompt && /usr/bin/fleet serve"
-    user: ${PUID}:${PGID}   # Running Fleet as your PUID/PGID is usually fine.
+    user: ${PUID}:${PGID}
     environment:
       - TZ=${TZ}
       - FLEET_MYSQL_ADDRESS=${FLEET_MYSQL_ADDRESS}
@@ -72,15 +70,15 @@ services:
       - FLEET_VULNERABILITIES_DATABASES_PATH=${FLEET_VULNERABILITIES_DATABASES_PATH}
       - FLEET_VULNERABILITIES_PERIODICITY=${FLEET_VULNERABILITIES_PERIODICITY}
     ports:
-      - "8082:8080"  # Fleet UI/API
+      - "8082:8080"  # Fleet UI/API - running on 8082 since we already have something else running on 8080 in this environment
       - "8220:8220"  # osquery enroll/TLS
     volumes:
       - /mnt/data/docker/volumes/fleet:/fleet/
       - /mnt/data/docker/volumes/fleet/logs:/logs
       - /mnt/data/docker/volumes/fleet/vulndb:/vulndb
-#    healthcheck:
-#      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8082/healthz"]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 12
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
     restart: unless-stopped
