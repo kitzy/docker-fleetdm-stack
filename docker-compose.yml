@@ -54,7 +54,7 @@ services:
       - FLEET_MYSQL_PASSWORD=${MYSQL_PASSWORD}
 #    env_file: fleet/default.env   # ensure MYSQL_ADDRESS=mysql:3306, REDIS_ADDRESS=redis:6379, etc.
     ports:
-      - "8080:8080"  # Fleet UI/API
+      - "8082:8080"  # Fleet UI/API
       - "8220:8220"  # osquery enroll/TLS
     volumes:
       - /mnt/data/docker/volumes/fleet:/fleet/
