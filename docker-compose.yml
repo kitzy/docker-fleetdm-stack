@@ -1,6 +1,7 @@
 services:
   mysql-fleet:
     image: mysql:8.0.37
+    container_name: mysql-fleet
     platform: linux/x86_64
     environment:
       - TZ=${TZ}
@@ -20,7 +21,7 @@ services:
 
   redis-fleet:
     image: redis:7.2
-    # Same note: avoid overriding user unless you must.
+    container_name: redis-fleet
     environment:
       - TZ=${TZ}
     command: ["redis-server", "--appendonly", "yes"]
@@ -37,6 +38,7 @@ services:
 
   fleet:
     image: fleetdm/fleet:v4.59.0
+    container_name: fleet
     platform: linux/x86_64
     depends_on:
       mysql-fleet:
