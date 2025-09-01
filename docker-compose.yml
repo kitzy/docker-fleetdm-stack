@@ -77,9 +77,9 @@ services:
       - /mnt/data/docker/volumes/fleet:/fleet/
       - /mnt/data/docker/volumes/fleet/logs:/logs
       - /mnt/data/docker/volumes/fleet/vulndb:/vulndb
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8082/healthz"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
+#    healthcheck:
+#      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8082/healthz"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 12
     restart: unless-stopped
