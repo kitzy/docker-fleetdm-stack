@@ -1,0 +1,65 @@
+services:
+  mysql-fleet:
+    image: mysql:8.0.37
+    platform: linux/x86_64
+    environment:
+      - TZ=${TZ}
+    env_file: mysql/default.env   # expects MYSQL_ROOT_PASSWORD, MYSQL_DATABASE, etc.
+    volumes:
+      - /mnt/data/docker/volumes/mysql-fleet/data:/var/lib/mysql
+    cap_add:
+      - SYS_NICE
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    expose:
+      - 3306
+    restart: unless-stopped
+
+  redis-fleet:
+    image: redis:7.2
+    # Same note: avoid overriding user unless you must.
+    environment:
+      - TZ=${TZ}
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - /mnt/data/docker/volumes/redis/data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    expose:
+      - 6379
+    restart: unless-stopped
+
+  fleet:
+    image: fleetdm/fleet:v4.59.0
+    platform: linux/x86_64
+    depends_on:
+      mysql-fleet:
+        condition: service_healthy
+      redis-fleet:
+        condition: service_healthy
+    # Prepare DB once; serving afterwards. This is acceptable, but you can
+    # also pre-initialize out-of-band if you prefer.
+    command: sh -c "/usr/bin/fleet prepare db --no-prompt && /usr/bin/fleet serve"
+    user: ${PUID}:${PGID}   # Running Fleet as your PUID/PGID is usually fine.
+    environment:
+      - TZ=${TZ}
+    env_file: fleet/default.env   # ensure MYSQL_ADDRESS=mysql:3306, REDIS_ADDRESS=redis:6379, etc.
+    ports:
+      - "8080:8080"  # Fleet UI/API
+      - "8220:8220"  # osquery enroll/TLS
+    volumes:
+      - /mnt/data/docker/volumes/fleet:/fleet/
+      - /mnt/data/docker/volumes/fleet/logs:/logs
+      - /mnt/data/docker/volumes/fleet/vulndb:/vulndb
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
