@@ -1,0 +1,42 @@
+name: Validate and Auto-Merge PR
+
+on:
+  pull_request:
+    paths:
+      - 'docker-compose.yml'
+      - '**/docker-compose.yml'
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v2
+
+    - name: Validate Docker Compose file
+      run: |
+        docker compose -f docker-compose.yml config
+
+    - name: Auto-merge PR if validation passes
+      run: |
+        gh pr merge --auto --squash "$PR_URL"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_URL: ${{ github.event.pull_request.html_url }}
+
+    - name: Delete the branch after merge
+      run: |
+        gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/${{ github.event.pull_request.head.ref }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
