@@ -10,7 +10,7 @@ services:
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:
-      - /mnt/data/docker/volumes/mysql-fleet/data:/var/lib/mysql
+      - ./mysql-fleet/data:/var/lib/mysql
     cap_add:
       - SYS_NICE
     healthcheck:
@@ -29,7 +29,7 @@ services:
       - TZ=${TZ}
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - /mnt/data/docker/volumes/redis/data:/data
+      - ./redis/data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -73,9 +73,9 @@ services:
       - "8082:8080"  # Fleet UI/API - running on 8082 since we already have something else running on 8080 in this environment
       - "8220:8220"  # osquery enroll/TLS
     volumes:
-      - /mnt/data/docker/volumes/fleet:/fleet/
-      - /mnt/data/docker/volumes/fleet/logs:/logs
-      - /mnt/data/docker/volumes/fleet/vulndb:/vulndb
+      - ./fleet:/fleet/
+      - ./fleet/logs:/logs
+      - ./fleet/vulndb:/vulndb
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
       interval: 10s
