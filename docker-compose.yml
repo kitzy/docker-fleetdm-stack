@@ -1,7 +1,11 @@
+networks:
+  proxy:
+    external: true
+    name: proxy
+
 services:
-  mysql-fleet:
+  fleet-mysql:
     image: mysql
-    container_name: mysql-fleet
     platform: linux/x86_64
     environment:
       - TZ=${TZ}
@@ -10,7 +14,7 @@ services:
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:
-      - /mnt/data/docker/volumes/mysql-fleet/data:/var/lib/mysql
+      - fleet_mysql:/var/lib/mysql
     cap_add:
       - SYS_NICE
     healthcheck:
@@ -19,47 +23,48 @@ services:
       timeout: 5s
       retries: 12
     expose:
-      - 3306
+      - "3306"
     restart: unless-stopped
 
-  redis-fleet:
-    image: redis
-    container_name: redis-fleet
+  fleet-redis:
+    image: redis:7.2
     environment:
       - TZ=${TZ}
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - /mnt/data/docker/volumes/redis/data:/data
+      - fleet_redis:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 12
     expose:
-      - 6379
+      - "6379"
     restart: unless-stopped
 
   fleet:
     image: fleetdm/fleet
-    container_name: fleet
     platform: linux/x86_64
     depends_on:
-      mysql-fleet:
+      fleet-mysql:
         condition: service_healthy
-      redis-fleet:
+      fleet-redis:
         condition: service_healthy
     command: sh -c "/usr/bin/fleet prepare db --no-prompt && /usr/bin/fleet serve"
-    user: ${PUID}:${PGID}
     environment:
       - TZ=${TZ}
-      - FLEET_MYSQL_ADDRESS=${FLEET_MYSQL_ADDRESS}
+      # In-cluster service addresses (no hostnames/ports on the host)
+      - FLEET_MYSQL_ADDRESS=fleet-mysql:3306
       - FLEET_MYSQL_DATABASE=${MYSQL_DATABASE}
       - FLEET_MYSQL_USERNAME=${MYSQL_USER}
       - FLEET_MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - FLEET_REDIS_ADDRESS=${FLEET_REDIS_ADDRESS}
-      - FLEET_SERVER_ADDRESS=${FLEET_SERVER_ADDRESS}
-      - FLEET_SERVER_TLS=${FLEET_SERVER_TLS}
-      - FLEET_SERVER_PRIVATE_KEY=${FLEET_SERVER_PRIVATE_KEY}
+      - FLEET_REDIS_ADDRESS=fleet-redis:6379
+
+      # Fleet HTTP listener. NPM terminates TLS and talks HTTP to Fleet over the proxy network.
+      - FLEET_SERVER_ADDRESS=0.0.0.0:8080
+      - FLEET_SERVER_TLS=false
+      - FLEET_SERVER_PRIVATE_KEY=
+
       - FLEET_LOGGING_JSON=${FLEET_LOGGING_JSON}
       - FLEET_OSQUERY_STATUS_LOG_PLUGIN=${FLEET_OSQUERY_STATUS_LOG_PLUGIN}
       - FLEET_FILESYSTEM_STATUS_LOG_FILE=${FLEET_FILESYSTEM_STATUS_LOG_FILE}
@@ -69,16 +74,31 @@ services:
       - FLEET_VULNERABILITIES_CURRENT_INSTANCE_CHECKS=${FLEET_VULNERABILITIES_CURRENT_INSTANCE_CHECKS}
       - FLEET_VULNERABILITIES_DATABASES_PATH=${FLEET_VULNERABILITIES_DATABASES_PATH}
       - FLEET_VULNERABILITIES_PERIODICITY=${FLEET_VULNERABILITIES_PERIODICITY}
-    ports:
-      - "8082:8080"  # Fleet UI/API - running on 8082 since we already have something else running on 8080 in this environment
-      - "8220:8220"  # osquery enroll/TLS
+
+    # No host ports published; only internal ports are exposed for NPM and peers on the 'proxy' network.
+    expose:
+      - "8080"   # UI/API
+      - "8220"   # osquery enroll/TLS endpoint (NPM TCP stream proxy)
+
     volumes:
-      - /mnt/data/docker/volumes/fleet:/fleet/
-      - /mnt/data/docker/volumes/fleet/logs:/logs
-      - /mnt/data/docker/volumes/fleet/vulndb:/vulndb
+      - fleet_data:/fleet
+      - fleet_logs:/logs
+      - fleet_vulndb:/vulndb
+
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
       interval: 10s
       timeout: 5s
       retries: 12
+
+    networks:
+      - proxy
+
     restart: unless-stopped
+
+volumes:
+  fleet_mysql:
+  fleet_redis:
+  fleet_data:
+  fleet_logs:
+  fleet_vulndb:
