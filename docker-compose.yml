@@ -6,6 +6,7 @@ networks:
 services:
   mysql:
     image: mysql
+    command: ["--innodb-force-recovery=2"]
     platform: linux/x86_64
     environment:
       - TZ=${TZ}
