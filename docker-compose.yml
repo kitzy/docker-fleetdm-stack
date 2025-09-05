@@ -45,11 +45,11 @@ services:
   fleet:
     image: fleetdm/fleet
     platform: linux/x86_64
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    #depends_on:
+    #  mysql:
+    #    condition: service_healthy
+    #  redis:
+    #    condition: service_healthy
     command: sh -c "/usr/bin/fleet prepare db --no-prompt && /usr/bin/fleet serve"
     environment:
       - TZ=${TZ}
