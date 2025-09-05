@@ -4,7 +4,7 @@ networks:
     name: proxy
 
 services:
-  fleet-mysql:
+  mysql:
     image: mysql
     platform: linux/x86_64
     environment:
@@ -14,7 +14,7 @@ services:
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:
-      - fleet_mysql:/var/lib/mysql
+      - mysql:/var/lib/mysql
     cap_add:
       - SYS_NICE
     healthcheck:
@@ -26,13 +26,13 @@ services:
       - "3306"
     restart: unless-stopped
 
-  fleet-redis:
+  redis:
     image: redis
     environment:
       - TZ=${TZ}
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - fleet_redis:/data
+      - redis:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -46,9 +46,9 @@ services:
     image: fleetdm/fleet
     platform: linux/x86_64
     depends_on:
-      fleet-mysql:
+      mysql:
         condition: service_healthy
-      fleet-redis:
+      redis:
         condition: service_healthy
     command: sh -c "/usr/bin/fleet prepare db --no-prompt && /usr/bin/fleet serve"
     environment:
@@ -81,9 +81,9 @@ services:
       - "8220"   # osquery enroll/TLS endpoint (NPM TCP stream proxy)
 
     volumes:
-      - fleet_data:/fleet
-      - fleet_logs:/logs
-      - fleet_vulndb:/vulndb
+      - data:/fleet
+      - logs:/logs
+      - vulndb:/vulndb
 
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
@@ -97,8 +97,8 @@ services:
     restart: unless-stopped
 
 volumes:
-  fleet_mysql:
-  fleet_redis:
-  fleet_data:
-  fleet_logs:
-  fleet_vulndb:
+  mysql:
+  redis:
+  data:
+  logs:
+  vulndb:
