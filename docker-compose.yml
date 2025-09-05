@@ -24,6 +24,7 @@ services:
       retries: 12
     expose:
       - "3306"
+    networks: [default]
     restart: unless-stopped
 
   redis:
@@ -40,6 +41,7 @@ services:
       retries: 12
     expose:
       - "6379"
+    networks: [default]
     restart: unless-stopped
 
   fleet:
@@ -91,8 +93,7 @@ services:
       timeout: 5s
       retries: 12
 
-    networks:
-      - proxy
+    networks: [default, proxy]
 
     restart: unless-stopped
 
