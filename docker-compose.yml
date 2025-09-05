@@ -27,7 +27,7 @@ services:
     restart: unless-stopped
 
   fleet-redis:
-    image: redis:7.2
+    image: redis
     environment:
       - TZ=${TZ}
     command: ["redis-server", "--appendonly", "yes"]
