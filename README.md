@@ -193,3 +193,71 @@ Back these up regularly.
 * Scale Fleet horizontally by running multiple replicas behind the same proxy, backed by a shared MySQL and Redis.
 
 ---
+
+## GitHub Workflow: Validate and Auto-Merge PR
+
+This repo includes a GitHub Actions workflow that validates changes to `docker-compose.yml` files and can automatically merge pull requests when validation succeeds.
+
+### Workflow file
+
+```yaml
+name: Validate and Auto-Merge PR
+
+on:
+  pull_request:
+    paths:
+      - 'docker-compose.yml'
+      - '**/docker-compose.yml'
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v2
+
+    - name: Validate Docker Compose file
+      run: |
+        docker compose -f docker-compose.yml config
+
+    - name: Auto-merge PR if validation passes
+      run: |
+        gh pr merge --auto --squash "$PR_URL"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_URL: ${{ github.event.pull_request.html_url }}
+
+    - name: Delete the branch after merge
+      run: |
+        gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/${{ github.event.pull_request.head.ref }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### How it works
+
+1. Triggered on pull requests that touch any `docker-compose.yml` file.
+2. Validates the compose configuration with `docker compose config`.
+3. If validation succeeds:
+
+   * The PR is merged automatically using **squash merge**.
+   * The source branch is deleted after merge.
+
+### Optional adjustments
+
+* **Auto merge**: If you don’t want auto merge, comment out or remove the `gh pr merge` step.
+* **Branch delete**: If you want to keep feature branches, comment out or remove the branch delete step.
+* **Merge method**: You can change `--squash` to `--merge` or `--rebase` depending on your preference.
+
+---
