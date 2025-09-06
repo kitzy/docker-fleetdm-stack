@@ -88,6 +88,11 @@ services:
       - FLEET_S3_ACCESS_KEY_ID=${FLEET_S3_ACCESS_KEY_ID}
       - FLEET_S3_SECRET_ACCESS_KEY=${FLEET_S3_SECRET_ACCESS_KEY}
       - FLEET_S3_FORCE_PATH_STYLE=${FLEET_S3_FORCE_PATH_STYLE}
+      # Override when using a different S3 compatible object storage backend (such as Minio)
+      # or running S3 locally with localstack. Leave this blank to use the default S3 service endpoint.
+      - FLEET_S3_SOFTWARE_INSTALLERS_ENDPOINT_URL=${FLEET_S3_SOFTWARE_INSTALLERS_ENDPOINT_URL}
+      # Minio users must set this to any nonempty value (eg. minio), as Minio does not support region discovery.
+      - FLEET_S3_SOFTWARE_INSTALLERS_REGION=${FLEET_S3_SOFTWARE_INSTALLERS_REGION}
 
     # No host ports published; only internal ports are exposed for NPM and peers on the 'proxy' network.
     expose:
