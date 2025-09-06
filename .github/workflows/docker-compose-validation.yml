@@ -1,14 +1,8 @@
 name: Validate docker-compose.yml
 
-on:
-  pull_request:
-    paths:
-      - 'docker-compose.yml'
-      - '**/docker-compose.yml'
-    types:
-      - opened
-      - synchronize
-      - reopened
+oon:
+  pull_request:  # run on all PRs so the 'validate' check always exists
+    types: [opened, synchronize, reopened]
 
 jobs:
   validate:
@@ -18,25 +12,41 @@ jobs:
       pull-requests: write
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Docker
-      uses: docker/setup-buildx-action@v2
+      - name: Detect compose changes
+        id: changed
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            compose:
+              - 'docker-compose.yml'
+              - '**/docker-compose.yml'
 
-    - name: Validate Docker Compose file
-      run: |
-        docker compose -f docker-compose.yml config
+      - name: Set up Docker
+        if: steps.changed.outputs.compose == 'true'
+        uses: docker/setup-buildx-action@v3
 
-  # - name: Auto-merge PR if validation passes
-  #   run: |
-  #     gh pr merge --auto --squash "$PR_URL"
-  #   env:
-  #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #     PR_URL: ${{ github.event.pull_request.html_url }}
+      - name: Validate Docker Compose file
+        if: steps.changed.outputs.compose == 'true'
+        run: docker compose -f docker-compose.yml config
 
-  # - name: Delete the branch after merge
-  #   run: |
-  #     gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/${{ github.event.pull_request.head.ref }}"
-  #   env:
-  #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Optional: explicitly mark “no compose changes” to be loud in logs
+      - name: Skipped: no compose changes
+        if: steps.changed.outputs.compose != 'true'
+        run: echo "No docker-compose.yml changes; validation skipped."
+
+
+      # - name: Auto-merge PR if validation passes
+      #   run: |
+      #     gh pr merge --auto --squash "$PR_URL"
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     PR_URL: ${{ github.event.pull_request.html_url }}
+
+      # - name: Delete the branch after merge
+      #   run: |
+      #     gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/${{ github.event.pull_request.head.ref }}"
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
