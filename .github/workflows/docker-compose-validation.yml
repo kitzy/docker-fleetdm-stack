@@ -1,4 +1,4 @@
-name: Validate and Auto-Merge PR
+name: Validate docker-compose.yml
 
 on:
   pull_request:
