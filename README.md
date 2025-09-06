@@ -1,88 +1,195 @@
-# docker-fleetdm-stack
+# FleetDM on Docker — Stack README
 
-Docker Compose stack for running [FleetDM](https://fleetdm.com), an open-source osquery manager. The stack bundles the Fleet server with its MySQL and Redis dependencies.
+This stack runs FleetDM with MySQL and Redis in Docker. All services are internal-only; external access is provided through a reverse proxy (e.g., Nginx Proxy Manager) on a shared `proxy` network.
 
-## Services
+---
 
-| Service      | Purpose                     | Ports (host:container) |
-|--------------|-----------------------------|------------------------|
-| mysql-fleet  | MySQL database for Fleet    | exposes `3306`         |
-| redis-fleet  | Redis cache for Fleet       | exposes `6379`         |
-| fleet        | FleetDM server              | `8082:8080`, `8220:8220` |
+## What this stack provides
 
-## Prerequisites
+* **FleetDM** app server (UI/API + osquery enroll endpoint)
+* **MySQL** as the primary data store
+* **Redis** for background jobs and caching
+* **Health checks** to ensure dependency ordering
+* **Named volumes** for persistence
+* **No host ports published** — only exposed to other containers on the `proxy` network
 
-- Docker and Docker Compose or a Portainer installation
-- Host directories available for the volume paths defined in `docker-compose.yml`
+---
 
-## Configuration
+## Architecture
 
-Create a `.env` file in the project root containing the variables below. Adjust the example values for your environment.
-
-| Variable | Example | Description |
-|----------|---------|-------------|
-| `TZ` | `UTC` | Time zone applied to all containers. |
-| `MYSQL_ROOT_PASSWORD` | `supersecret` | Root password for MySQL. |
-| `MYSQL_DATABASE` | `fleet` | Name of the Fleet database. |
-| `MYSQL_USER` | `fleet` | MySQL user Fleet uses. |
-| `MYSQL_PASSWORD` | `fleetpass` | Password for `MYSQL_USER`. |
-| `PUID` | `1000` | UID the Fleet container runs as (controls file ownership). |
-| `PGID` | `1000` | GID the Fleet container runs as. |
-| `FLEET_MYSQL_ADDRESS` | `mysql-fleet:3306` | Host and port of the MySQL service. |
-| `FLEET_MYSQL_DATABASE` | `fleet` | Database name used by Fleet. |
-| `FLEET_MYSQL_USERNAME` | `fleet` | MySQL username for Fleet. |
-| `FLEET_MYSQL_PASSWORD` | `fleetpass` | Password for Fleet's MySQL user. |
-| `FLEET_REDIS_ADDRESS` | `redis-fleet:6379` | Host and port of the Redis service. |
-| `FLEET_SERVER_ADDRESS` | `0.0.0.0:8080` | Address Fleet listens on inside the container. |
-| `FLEET_SERVER_TLS` | `false` | Set to `true` to enable TLS for the Fleet server. |
-| `FLEET_SERVER_PRIVATE_KEY` | `/fleet/server.key` | Path to the TLS private key when TLS is enabled. |
-| `FLEET_LOGGING_JSON` | `true` | Emit logs in JSON format. |
-| `FLEET_OSQUERY_STATUS_LOG_PLUGIN` | `filesystem` | Backend used for osquery status logs. |
-| `FLEET_FILESYSTEM_STATUS_LOG_FILE` | `/logs/status.log` | Location of osquery status logs. |
-| `FLEET_FILESYSTEM_RESULT_LOG_FILE` | `/logs/result.log` | Location of osquery result logs. |
-| `FLEET_LICENSE_KEY` | *(empty)* | Fleet license key (leave empty for OSS). |
-| `FLEET_OSQUERY_LABEL_UPDATE_INTERVAL` | `1h` | How often Fleet refreshes labels. |
-| `FLEET_VULNERABILITIES_CURRENT_INSTANCE_CHECKS` | `true` | Restrict vulnerability checks to this instance. |
-| `FLEET_VULNERABILITIES_DATABASES_PATH` | `/vulndb` | Directory storing vulnerability databases. |
-| `FLEET_VULNERABILITIES_PERIODICITY` | `24h` | Interval between vulnerability database updates. |
-
-## Usage
-
-Start the stack locally:
-
-```bash
-docker compose up -d
+```
+[Internet]
+    |
+  HTTPS
+    |
+[Nginx Proxy Manager]  (on external 'proxy' network)
+    |            \
+    |             \  TCP 8220 (stream)
+HTTP 8080          \
+    |               \
+[fleet:8080]     [fleet:8220]
+    |
+  depends_on
+    |
+[redis:6379]   [mysql:3306]
 ```
 
-Then visit `http://localhost:8082` for the Fleet UI and use port `8220` for osquery agent enrollment.
+* TLS is terminated by NPM.
+* Fleet listens on plain HTTP (`8080`) inside the cluster.
+* The osquery enroll endpoint uses raw TCP on port `8220`.
 
-## Deploying with Portainer
+---
 
-1. In Portainer, navigate to **Stacks → Add stack**.
-2. Choose **Git repository**, enter this repository URL, and set the compose file path to `docker-compose.yml`.
-3. Supply the environment variables above via the web form or attach a `.env` file.
-4. Enable **Automatic updates** to keep the stack in sync with the repository (GitOps). Select a polling interval or webhook trigger.
-5. Click **Deploy the stack**.
+## Dependencies and assumptions
 
-Portainer will pull new commits and redeploy automatically when automatic updates are enabled.
+* **Docker Engine v24+** and **Docker Compose v2** on a 64-bit Linux host.
+* An external Docker network named **`proxy`** that your reverse proxy container also uses.
 
-## Customizing for your environment
+  ```bash
+  docker network create proxy
+  ```
+* Nginx Proxy Manager (NPM) or equivalent, attached to the `proxy` network.
+* DNS pointing `fleet.example.com` at your reverse proxy host.
+* TLS handled entirely by the proxy.
 
-- **Volume paths** – Adjust the host paths under `volumes` if `/mnt/data/docker/volumes/` does not exist on your system.
-- **Ports** – Change the left side of port mappings such as `8082:8080` if those host ports are already in use.
-- **User and group IDs** – Set `PUID` and `PGID` to match the user that should own mounted files.
-- **Platform** – Modify or remove `platform: linux/x86_64` if you are running on a different CPU architecture.
-- **TLS settings** – When `FLEET_SERVER_TLS=true`, mount certificate files and set `FLEET_SERVER_PRIVATE_KEY` accordingly.
+---
 
-## Data persistence
+## Environment variables
 
-MySQL, Redis, and Fleet data are stored in the directories mounted under `/mnt/data/docker/volumes/`. Back up these paths to preserve data between deployments.
+Create a `.env` file alongside the compose file:
 
-## Validation
+```env
+# Timezone
+TZ=America/New_York
 
-Validate the compose file before deploying:
+# MySQL credentials
+MYSQL_ROOT_PASSWORD=change_me_root
+MYSQL_DATABASE=fleet
+MYSQL_USER=fleet
+MYSQL_PASSWORD=change_me_user
 
-```bash
-docker compose -f docker-compose.yml config
+# Fleet configuration
+FLEET_LOGGING_JSON=true
+FLEET_OSQUERY_STATUS_LOG_PLUGIN=filesystem
+FLEET_FILESYSTEM_STATUS_LOG_FILE=/logs/osquery_status.log
+FLEET_FILESYSTEM_RESULT_LOG_FILE=/logs/osquery_result.log
+FLEET_LICENSE_KEY=
+
+# Vulnerability settings
+FLEET_OSQUERY_LABEL_UPDATE_INTERVAL=1h
+FLEET_VULNERABILITIES_CURRENT_INSTANCE_CHECKS=true
+FLEET_VULNERABILITIES_DATABASES_PATH=/vulndb
+FLEET_VULNERABILITIES_PERIODICITY=1h
+
+# Only needed if forcing container user
+PUID=1000
+PGID=1000
 ```
 
+---
+
+## Reverse proxy configuration (NPM)
+
+In **Nginx Proxy Manager**:
+
+1. **HTTP Host Proxy**
+
+   * **Domain**: `fleet.example.com`
+   * **Forward Hostname / IP**: `fleet`
+   * **Forward Port**: `8080`
+   * Enable SSL and request a Let’s Encrypt certificate.
+   * Force SSL.
+
+2. **TCP Stream Proxy**
+
+   * Add a new **Stream** in NPM.
+   * **Listen Port**: `8220`
+   * **Forward Hostname / IP**: `fleet`
+   * **Forward Port**: `8220`
+   * This is a raw TCP proxy. Do not wrap it in HTTP.
+
+---
+
+## Running the stack
+
+Bring up the services:
+
+```bash
+docker compose --env-file .env up -d
+```
+
+* Fleet will run `prepare db` automatically on startup.
+* Health checks ensure MySQL and Redis are ready before Fleet starts.
+
+Access Fleet at:
+
+```
+https://fleet.example.com
+```
+
+---
+
+## Volumes
+
+* `mysql` — MySQL data
+* `redis` — Redis AOF data
+* `data` — Fleet application state
+* `logs` — Local Fleet logs (if using filesystem log plugin)
+* `vulndb` — Cached vulnerability databases
+
+Back these up regularly.
+
+---
+
+## Backups
+
+1. **What to back up**:
+
+   * `mysql` (mandatory)
+   * `data`, `logs`, `vulndb` (recommended)
+   * `redis` (optional; cold cache can be rebuilt)
+
+2. **Snapshot example**:
+
+   ```bash
+   docker run --rm -v mysql:/vol -v $PWD:/backup alpine \
+     tar -C /vol -czf /backup/mysql.tgz .
+   ```
+
+3. **Restore**:
+
+   * Create empty volumes.
+   * Extract backup into volumes.
+   * Restart the stack.
+
+---
+
+## Security notes
+
+* Do not publish MySQL or Redis ports to the host.
+* Use strong, unique passwords for MySQL.
+* Restrict which containers can join the `proxy` network.
+* Rotate Fleet API tokens and enroll secrets regularly.
+
+---
+
+## Troubleshooting
+
+* **Fleet unhealthy**:
+  Check logs with `docker logs fleet` or `wget -qO- http://127.0.0.1:8080/healthz` inside the container.
+* **Proxy cannot reach Fleet**:
+  Confirm both NPM and Fleet are attached to the `proxy` network. From NPM container:
+  `curl http://fleet:8080/healthz`
+* **Agents not enrolling**:
+  Verify TCP stream proxy on port `8220` is reachable externally.
+
+---
+
+## Scaling
+
+* For larger installs, pin specific image tags (`mysql:8.x`, `redis:7.x`, `fleetdm/fleet:<version>`).
+* Tune MySQL (`innodb_buffer_pool_size`, `utf8mb4`).
+* Use external logging instead of filesystem logs.
+* Scale Fleet horizontally by running multiple replicas behind the same proxy, backed by a shared MySQL and Redis.
+
+---
