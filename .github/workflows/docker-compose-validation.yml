@@ -1,6 +1,6 @@
 name: Validate docker-compose.yml
 
-oon:
+on:
   pull_request:  # run on all PRs so the 'validate' check always exists
     types: [opened, synchronize, reopened]
 
@@ -33,7 +33,7 @@ jobs:
         run: docker compose -f docker-compose.yml config
 
       # Optional: explicitly mark “no compose changes” to be loud in logs
-      - name: Skipped: no compose changes
+      - name: No compose changes
         if: steps.changed.outputs.compose != 'true'
         run: echo "No docker-compose.yml changes; validation skipped."
 
