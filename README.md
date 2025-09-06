@@ -204,14 +204,8 @@ This repo includes a GitHub Actions workflow that validates changes to `docker-c
 name: Validate and Auto-Merge PR
 
 on:
-  pull_request:
-    paths:
-      - 'docker-compose.yml'
-      - '**/docker-compose.yml'
-    types:
-      - opened
-      - synchronize
-      - reopened
+  pull_request:  # run on all PRs so the 'validate' check always exists
+    types: [opened, synchronize, reopened]
 
 jobs:
   validate:
@@ -221,43 +215,71 @@ jobs:
       pull-requests: write
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Docker
-      uses: docker/setup-buildx-action@v2
+      - name: Detect compose changes
+        id: changed
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            compose:
+              - 'docker-compose.yml'
+              - '**/docker-compose.yml'
 
-    - name: Validate Docker Compose file
-      run: |
-        docker compose -f docker-compose.yml config
+      - name: Set up Docker
+        if: steps.changed.outputs.compose == 'true'
+        uses: docker/setup-buildx-action@v3
 
-    - name: Auto-merge PR if validation passes
-      run: |
-        gh pr merge --auto --squash "$PR_URL"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        PR_URL: ${{ github.event.pull_request.html_url }}
+      - name: Validate Docker Compose file
+        if: steps.changed.outputs.compose == 'true'
+        run: docker compose -f docker-compose.yml config
 
-    - name: Delete the branch after merge
-      run: |
-        gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/${{ github.event.pull_request.head.ref }}"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: No compose changes
+        if: steps.changed.outputs.compose != 'true'
+        run: echo "No docker-compose.yml changes; validation skipped."
+
+      - name: Auto-merge PR if validation passes
+        if: steps.changed.outputs.compose == 'true'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+
+      - name: Delete the branch after merge
+        if: steps.changed.outputs.compose == 'true'
+        run: gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/${{ github.event.pull_request.head.ref }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### How it works
 
-1. Triggered on pull requests that touch any `docker-compose.yml` file.
-2. Validates the compose configuration with `docker compose config`.
-3. If validation succeeds:
+1. The workflow **always runs** on PRs, so the `validate` check always appears and succeeds.
+2. A paths filter decides whether any `docker-compose.yml` files changed.
+3. If compose files changed:
 
-   * The PR is merged automatically using **squash merge**.
-   * The source branch is deleted after merge.
+   * Validation runs with `docker compose config`.
+   * PR is auto-merged with squash.
+   * The branch is deleted.
+4. If no compose files changed:
+
+   * The job succeeds immediately with a skip message.
 
 ### Optional adjustments
 
-* **Auto merge**: If you don’t want auto merge, comment out or remove the `gh pr merge` step.
-* **Branch delete**: If you want to keep feature branches, comment out or remove the branch delete step.
-* **Merge method**: You can change `--squash` to `--merge` or `--rebase` depending on your preference.
+* **Auto merge**: Remove or comment out the `gh pr merge` step if you prefer manual merging.
+* **Branch delete**: Remove the branch delete step to keep feature branches.
+* **Merge method**: Replace `--squash` with `--merge` or `--rebase` as needed.
+
+### Repository rules
+
+Use a repository ruleset or classic branch protection to:
+
+* Block direct pushes to `main`.
+* Require pull requests for changes.
+* Require the `validate` job to pass before merging.
+
+Because the workflow now always reports a `validate` check (even when skipping), unrelated PRs won’t be blocked.
 
 ---
