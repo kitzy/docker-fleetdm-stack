@@ -235,7 +235,7 @@ jobs:
         if: steps.changed.outputs.compose == 'true'
         run: docker compose -f docker-compose.yml config
 
-      - name: Skipped: no compose changes
+      - name: No compose changes
         if: steps.changed.outputs.compose != 'true'
         run: echo "No docker-compose.yml changes; validation skipped."
 
