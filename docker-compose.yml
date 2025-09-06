@@ -83,15 +83,16 @@ services:
       - FLEET_VULNERABILITIES_PERIODICITY=${FLEET_VULNERABILITIES_PERIODICITY}
 
       # Optional S3 info
-      - FLEET_S3_ENDPOINT=${FLEET_S3_ENDPOINT}
       - FLEET_S3_SOFTWARE_INSTALLERS_BUCKET=${FLEET_S3_SOFTWARE_INSTALLERS_BUCKET}
       - FLEET_S3_SOFTWARE_INSTALLERS_ACCESS_KEY_ID=${FLEET_S3_SOFTWARE_INSTALLERS_ACCESS_KEY_ID}
       - FLEET_S3_SOFTWARE_INSTALLERS_SECRET_ACCESS_KEY=${FLEET_S3_SOFTWARE_INSTALLERS_SECRET_ACCESS_KEY}
-      - FLEET_S3_FORCE_PATH_STYLE=${FLEET_S3_FORCE_PATH_STYLE}
-      # Override when using a different S3 compatible object storage backend (such as Minio)
-      # or running S3 locally with localstack. Leave this blank to use the default S3 service endpoint.
+      - FLEET_S3_SOFTWARE_INSTALLERS_FORCE_S3_PATH_STYLE=${FLEET_S3_SOFTWARE_INSTALLERS_FORCE_S3_PATH_STYLE}
+      # Override FLEET_S3_SOFTWARE_INSTALLERS_ENDPOINT_URL when using a different S3 compatible 
+      # object storage backend (such as Minio) or running S3 locally with localstack.
+      # Leave this blank to use the default S3 service endpoint.
       - FLEET_S3_SOFTWARE_INSTALLERS_ENDPOINT_URL=${FLEET_S3_SOFTWARE_INSTALLERS_ENDPOINT_URL}
-      # Minio users must set this to any nonempty value (eg. minio), as Minio does not support region discovery.
+      # Minio users must set FLEET_S3_SOFTWARE_INSTALLERS_REGION to any nonempty value (eg. minio),
+      # as Minio does not support region discovery.
       - FLEET_S3_SOFTWARE_INSTALLERS_REGION=${FLEET_S3_SOFTWARE_INSTALLERS_REGION}
 
     # No host ports published; only internal ports are exposed for NPM and peers on the 'proxy' network.
