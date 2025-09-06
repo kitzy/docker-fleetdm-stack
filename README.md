@@ -69,6 +69,7 @@ MYSQL_USER=fleet
 MYSQL_PASSWORD=change_me_user
 
 # Fleet configuration
+FLEET_SERVER_PRIVATE_KEY=      # Run `openssl rand -base64 32` to generate
 FLEET_LOGGING_JSON=true
 FLEET_OSQUERY_STATUS_LOG_PLUGIN=filesystem
 FLEET_FILESYSTEM_STATUS_LOG_FILE=/logs/osquery_status.log
