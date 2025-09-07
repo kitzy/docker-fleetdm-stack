@@ -1,4 +1,4 @@
-# FleetDM on Docker — Stack README
+# FleetDM on Docker
 
 This stack runs FleetDM with MySQL and Redis in Docker. All services are internal-only; external access is provided through a reverse proxy (e.g., Nginx Proxy Manager) on a shared `proxy` network.
 
