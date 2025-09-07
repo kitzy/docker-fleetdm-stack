@@ -197,62 +197,7 @@ Back these up regularly.
 
 ## GitHub Workflow: Validate and Auto-Merge PR
 
-This repo includes a GitHub Actions workflow that validates changes to `docker-compose.yml` files and can automatically merge pull requests when validation succeeds.
-
-### Workflow file
-
-```yaml
-name: Validate and Auto-Merge PR
-
-on:
-  pull_request:  # run on all PRs so the 'validate' check always exists
-    types: [opened, synchronize, reopened]
-
-jobs:
-  validate:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Detect compose changes
-        id: changed
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            compose:
-              - 'docker-compose.yml'
-              - '**/docker-compose.yml'
-
-      - name: Set up Docker
-        if: steps.changed.outputs.compose == 'true'
-        uses: docker/setup-buildx-action@v3
-
-      - name: Validate Docker Compose file
-        if: steps.changed.outputs.compose == 'true'
-        run: docker compose -f docker-compose.yml config
-
-      - name: No compose changes
-        if: steps.changed.outputs.compose != 'true'
-        run: echo "No docker-compose.yml changes; validation skipped."
-
-      - name: Auto-merge PR if validation passes
-        if: steps.changed.outputs.compose == 'true'
-        run: gh pr merge --auto --squash "$PR_URL"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
-
-      - name: Delete the branch after merge
-        if: steps.changed.outputs.compose == 'true'
-        run: gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/${{ github.event.pull_request.head.ref }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
+This repo includes a [GitHub Actions workflow](.github/workflows/docker-compose-validation.yml) that validates changes to `docker-compose.yml` files.
 
 ### How it works
 
@@ -266,12 +211,6 @@ jobs:
 4. If no compose files changed:
 
    * The job succeeds immediately with a skip message.
-
-### Optional adjustments
-
-* **Auto merge**: Remove or comment out the `gh pr merge` step if you prefer manual merging.
-* **Branch delete**: Remove the branch delete step to keep feature branches.
-* **Merge method**: Replace `--squash` with `--merge` or `--rebase` as needed.
 
 ### Repository rules
 
