@@ -2,6 +2,8 @@
 
 This stack runs FleetDM with MySQL and Redis in Docker. All services are internal-only; external access is provided through a reverse proxy (e.g., Nginx Proxy Manager) on a shared `proxy` network.
 
+For more iformation on putting this stack behind Nginx Proxy Manager, see [this repo](https://github.com/kitzy/docker-webservices-stack).
+
 ---
 
 ## What this stack provides
