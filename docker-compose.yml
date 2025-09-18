@@ -1,3 +1,5 @@
+# If you don't want to use a front-end proxy for your fleet instance,
+# delete or comment out lines 3-6 below
 networks:
   proxy:
     external: true
@@ -100,6 +102,14 @@ services:
       - "8080"   # UI/API
       - "8220"   # osquery enroll/TLS endpoint (NPM TCP stream proxy)
 
+    # If you don't want to use a front-end proxy for your fleet instance,
+    # delete or comment out the "expose" section above
+    # and uncomment the following ports section:
+    
+    #ports:
+    #  - "8080:8080"
+    #  - "8220:8220"
+
     volumes:
       - data:/fleet
       - logs:/logs
@@ -111,7 +121,7 @@ services:
       timeout: 5s
       retries: 12
 
-    networks: [default, proxy]
+    networks: [default, proxy] # If you don't want to use a front-end proxy for your fleet instance, remove proxy from the networks list
 
     restart: unless-stopped
 
