@@ -47,7 +47,7 @@ services:
     restart: unless-stopped
 
   fleet:
-    image: fleetdm/fleet:v4.73.4
+    image: fleetdm/fleet:v4.74.0
     platform: linux/x86_64
     depends_on:
       mysql:
