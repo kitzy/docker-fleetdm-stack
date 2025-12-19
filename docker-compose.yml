@@ -47,7 +47,7 @@ services:
     restart: unless-stopped
 
   fleet:
-    image: fleetdm/fleet:v4.77.0
+    image: fleetdm/fleet:v4.78.0
     platform: linux/x86_64
     depends_on:
       mysql:
@@ -101,8 +101,7 @@ services:
     # No host ports published; only internal ports are exposed for NPM and peers on the 'proxy' network.
     expose:
       - "8080"   # UI/API
-      - "8220"   # osquery enroll/TLS endpoint (NPM TCP stream proxy)
-
+      
     # If you don't want to use a front-end proxy for your fleet instance,
     # delete or comment out the "expose" section above
     # and uncomment the following ports section:
