@@ -25,11 +25,11 @@ For more information on putting this stack behind Nginx Proxy Manager, see [this
   HTTPS
     |
 [Nginx Proxy Manager]  (on external 'proxy' network)
-    |            \
-    |             \  TCP 8220 (stream)
-HTTP 8080          \
-    |               \
-[fleet:8080]     [fleet:8220]
+    |
+    |
+HTTP 8080
+    |
+[fleet:8080]
     |
   depends_on
     |
@@ -38,7 +38,6 @@ HTTP 8080          \
 
 * TLS is terminated by NPM.
 * Fleet listens on plain HTTP (`8080`) inside the cluster.
-* The osquery enroll endpoint uses raw TCP on port `8220`.
 
 ---
 
@@ -102,14 +101,6 @@ In **Nginx Proxy Manager**:
    * **Forward Port**: `8080`
    * Enable SSL and request a Let’s Encrypt certificate.
    * Force SSL.
-
-2. **TCP Stream Proxy**
-
-   * Add a new **Stream** in NPM.
-   * **Listen Port**: `8220`
-   * **Forward Hostname / IP**: `fleet`
-   * **Forward Port**: `8220`
-   * This is a raw TCP proxy. Do not wrap it in HTTP.
 
 ---
 
@@ -183,8 +174,6 @@ Back these up regularly.
 * **Proxy cannot reach Fleet**:
   Confirm both NPM and Fleet are attached to the `proxy` network. From NPM container:
   `curl http://fleet:8080/healthz`
-* **Agents not enrolling**:
-  Verify TCP stream proxy on port `8220` is reachable externally.
 
 ---
 
