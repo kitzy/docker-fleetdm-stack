@@ -107,8 +107,7 @@ services:
     # and uncomment the following ports section:
     
     #ports:
-    #  - "8080:8080"
-    #  - "8220:8220"
+    #  - "8080:8080"   # UI/API
 
     volumes:
       - data:/fleet
