@@ -1,3 +1,5 @@
+This repository is archived because I have migrated my Fleet deployment to [Kubernetes](https://github.com/kitzy/homelab-gitops/tree/main/apps/fleet).
+
 # Fleet on Docker
 
 This stack runs Fleet with MySQL and Redis in Docker. All services are internal-only; external access is provided through a reverse proxy (e.g., Nginx Proxy Manager) on a shared `proxy` network.
